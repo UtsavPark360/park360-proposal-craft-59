@@ -7,7 +7,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Car, Phone, Mail, Globe, CheckCircle, Star, Shield, CreditCard, UserCheck, Smartphone, Download, Calendar, DollarSign } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ArrowLeft, Car, Phone, Mail, Globe, CheckCircle, Star, Shield, CreditCard, UserCheck, Smartphone, Download, Calendar, DollarSign, Settings } from 'lucide-react';
+import { pricingMultipliers, pricingCategoryLabels, tierLabels, PricingCategoryKey, TierKey } from '@/data/pricingData';
 
 interface ProposalData {
   clientName: string;
@@ -41,6 +43,8 @@ interface ProposalPreviewProps {
 const ProposalPreview = ({ proposalData, selectedComponents = [], onBack }: ProposalPreviewProps) => {
   const [additionalRequirements, setAdditionalRequirements] = useState('');
   const [additionalPrice, setAdditionalPrice] = useState('');
+  const [selectedPricingCategory, setSelectedPricingCategory] = useState<PricingCategoryKey>('competitiveRetail');
+  const [selectedTier, setSelectedTier] = useState<TierKey>('tier1');
 
   const handlePrint = () => {
     window.print();
@@ -76,8 +80,16 @@ const ProposalPreview = ({ proposalData, selectedComponents = [], onBack }: Prop
     return benefitsMap[solution] || ['Enhanced efficiency', 'Cost reduction', 'Improved security'];
   };
 
+  const calculateAdjustedPrice = (basePrice: number) => {
+    const multiplier = pricingMultipliers[selectedPricingCategory][selectedTier];
+    return Math.round(basePrice * multiplier);
+  };
+
   const calculateTotalCost = () => {
-    const componentsCost = selectedComponents.reduce((total, component) => total + (component.unitPrice * component.quantity), 0);
+    const componentsCost = selectedComponents.reduce((total, component) => {
+      const adjustedPrice = calculateAdjustedPrice(component.unitPrice);
+      return total + (adjustedPrice * component.quantity);
+    }, 0);
     const additionalCost = additionalPrice ? parseFloat(additionalPrice) || 0 : 0;
     return componentsCost + additionalCost;
   };
@@ -225,6 +237,60 @@ const ProposalPreview = ({ proposalData, selectedComponents = [], onBack }: Prop
           </CardContent>
         </Card>
 
+        {/* Pricing Configuration Section - Print Hidden */}
+        <Card className="mb-6 print:hidden">
+          <CardHeader>
+            <CardTitle className="text-2xl text-purple-600 flex items-center gap-2">
+              <Settings className="h-6 w-6" />
+              Pricing Configuration
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="pricingCategory">Price Category</Label>
+                <Select 
+                  value={selectedPricingCategory} 
+                  onValueChange={(value: PricingCategoryKey) => setSelectedPricingCategory(value)}
+                >
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Select pricing category" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border shadow-lg z-50">
+                    {Object.entries(pricingCategoryLabels).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tier">Tier</Label>
+                <Select 
+                  value={selectedTier} 
+                  onValueChange={(value: TierKey) => setSelectedTier(value)}
+                >
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Select tier" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border shadow-lg z-50">
+                    {Object.entries(tierLabels).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-600 mb-2">
+                <strong>Selected:</strong> {pricingCategoryLabels[selectedPricingCategory]} - {tierLabels[selectedTier]}
+              </p>
+              <p className="text-sm text-gray-600">
+                <strong>Price Multiplier:</strong> {(pricingMultipliers[selectedPricingCategory][selectedTier] * 100).toFixed(0)}% of base price
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Selected Components & Pricing */}
         {selectedComponents.length > 0 && (
           <Card className="mb-6">
@@ -232,6 +298,9 @@ const ProposalPreview = ({ proposalData, selectedComponents = [], onBack }: Prop
               <CardTitle className="text-2xl text-green-600 flex items-center gap-2">
                 <DollarSign className="h-6 w-6" />
                 Selected Components & Pricing
+                <Badge variant="outline" className="ml-2">
+                  {pricingCategoryLabels[selectedPricingCategory]} - {tierLabels[selectedTier]}
+                </Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -244,22 +313,27 @@ const ProposalPreview = ({ proposalData, selectedComponents = [], onBack }: Prop
                         <TableHead>Component</TableHead>
                         <TableHead>Description</TableHead>
                         <TableHead className="text-right">Qty</TableHead>
-                        <TableHead className="text-right">Unit Price</TableHead>
+                        <TableHead className="text-right">Base Price</TableHead>
+                        <TableHead className="text-right">Adjusted Price</TableHead>
                         <TableHead className="text-right">Total</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {components.map((component) => (
-                        <TableRow key={component.id}>
-                          <TableCell className="font-medium">{component.name}</TableCell>
-                          <TableCell className="text-sm text-gray-600">{component.description}</TableCell>
-                          <TableCell className="text-right">{component.quantity}</TableCell>
-                          <TableCell className="text-right">${component.unitPrice.toLocaleString()}</TableCell>
-                          <TableCell className="text-right font-semibold">
-                            ${(component.unitPrice * component.quantity).toLocaleString()}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {components.map((component) => {
+                        const adjustedPrice = calculateAdjustedPrice(component.unitPrice);
+                        return (
+                          <TableRow key={component.id}>
+                            <TableCell className="font-medium">{component.name}</TableCell>
+                            <TableCell className="text-sm text-gray-600">{component.description}</TableCell>
+                            <TableCell className="text-right">{component.quantity}</TableCell>
+                            <TableCell className="text-right text-gray-500">${component.unitPrice.toLocaleString()}</TableCell>
+                            <TableCell className="text-right font-semibold">${adjustedPrice.toLocaleString()}</TableCell>
+                            <TableCell className="text-right font-semibold">
+                              ${(adjustedPrice * component.quantity).toLocaleString()}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
