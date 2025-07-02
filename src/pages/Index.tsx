@@ -32,6 +32,7 @@ interface SelectedComponent {
   name: string;
   category: string;
   description: string;
+  basePrice: number;
   unitPrice: number;
   quantity: number;
   selected: boolean;
