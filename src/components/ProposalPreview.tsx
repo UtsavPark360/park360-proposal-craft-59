@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Car, Phone, Mail, Globe, CheckCircle, Star, Shield, CreditCard, UserCheck, Smartphone, Download, Calendar, DollarSign, Settings } from 'lucide-react';
-import { pricingMultipliers, pricingCategoryLabels, tierLabels, PricingCategoryKey, TierKey } from '@/data/pricingData';
+import { pricingMultipliers, pricingCategoryLabels, tierLabels, PricingCategoryKey, TierKey, allComponents, ComponentItem } from '@/data/pricingData';
 
 interface ProposalData {
   clientName: string;
@@ -24,19 +23,9 @@ interface ProposalData {
   customRequirements: string;
 }
 
-interface SelectedComponent {
-  id: string;
-  name: string;
-  category: string;
-  description: string;
-  unitPrice: number;
-  quantity: number;
-  selected: boolean;
-}
-
 interface ProposalPreviewProps {
   proposalData: ProposalData;
-  selectedComponents?: SelectedComponent[];
+  selectedComponents?: ComponentItem[];
   onBack: () => void;
 }
 
@@ -45,6 +34,13 @@ const ProposalPreview = ({ proposalData, selectedComponents = [], onBack }: Prop
   const [additionalPrice, setAdditionalPrice] = useState('');
   const [selectedPricingCategory, setSelectedPricingCategory] = useState<PricingCategoryKey>('competitiveRetail');
   const [selectedTier, setSelectedTier] = useState<TierKey>('tier1');
+  const [components, setComponents] = useState<ComponentItem[]>(allComponents);
+
+  const handleQuantityChange = (id: string, quantity: number) => {
+    setComponents(prev => prev.map(comp => 
+      comp.id === id ? { ...comp, quantity: Math.max(0, quantity) } : comp
+    ));
+  };
 
   const handlePrint = () => {
     window.print();
@@ -86,22 +82,25 @@ const ProposalPreview = ({ proposalData, selectedComponents = [], onBack }: Prop
   };
 
   const calculateTotalCost = () => {
-    const componentsCost = selectedComponents.reduce((total, component) => {
-      const adjustedPrice = calculateAdjustedPrice(component.unitPrice);
-      return total + (adjustedPrice * component.quantity);
+    const componentsCost = components.reduce((total, component) => {
+      if (component.quantity > 0) {
+        const adjustedPrice = calculateAdjustedPrice(component.basePrice);
+        return total + (adjustedPrice * component.quantity);
+      }
+      return total;
     }, 0);
     const additionalCost = additionalPrice ? parseFloat(additionalPrice) || 0 : 0;
     return componentsCost + additionalCost;
   };
 
   const groupComponentsByCategory = () => {
-    return selectedComponents.reduce((groups, component) => {
+    return components.reduce((groups, component) => {
       if (!groups[component.category]) {
         groups[component.category] = [];
       }
       groups[component.category].push(component);
       return groups;
-    }, {} as Record<string, SelectedComponent[]>);
+    }, {} as Record<string, ComponentItem[]>);
   };
 
   const totalCost = calculateTotalCost();
@@ -116,7 +115,7 @@ const ProposalPreview = ({ proposalData, selectedComponents = [], onBack }: Prop
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-600 rounded-full">
-              <Car className="h-6 w-6 text-white" />
+              <img src="/lovable-uploads/logo.png" alt="Park360 Logo" className="h-6 w-6" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-blue-600">Park360</h1>
@@ -161,7 +160,7 @@ const ProposalPreview = ({ proposalData, selectedComponents = [], onBack }: Prop
         <div className="text-center mb-8 print:hidden">
           <div className="flex items-center justify-center gap-3 mb-4">
             <div className="p-3 bg-blue-600 rounded-full">
-              <Car className="h-8 w-8 text-white" />
+              <img src="/lovable-uploads/logo.png" alt="Park360 Logo" className="h-8 w-8" />
             </div>
             <h1 className="text-4xl font-bold text-blue-600">Park360</h1>
           </div>
@@ -190,11 +189,11 @@ const ProposalPreview = ({ proposalData, selectedComponents = [], onBack }: Prop
               </div>
               <div className="text-center p-4 bg-purple-50 rounded-lg">
                 <h4 className="font-semibold text-purple-600">Components</h4>
-                <p className="text-gray-700">{selectedComponents.length} Selected</p>
+                <p className="text-gray-700">{components.length} Selected</p>
               </div>
               <div className="text-center p-4 bg-yellow-50 rounded-lg">
                 <h4 className="font-semibold text-yellow-600">Total Cost</h4>
-                <p className="text-gray-700 font-bold">${totalCost.toLocaleString()}</p>
+                <p className="text-gray-700 font-bold">₹{totalCost.toLocaleString()}</p>
               </div>
             </div>
             
@@ -203,286 +202,6 @@ const ProposalPreview = ({ proposalData, selectedComponents = [], onBack }: Prop
               As a leading provider of automated parking technologies, we understand the unique challenges faced by {proposalData.clientType.toLowerCase()} facilities 
               and have designed our solutions to address your specific operational needs while maximizing efficiency and revenue.
             </p>
-          </CardContent>
-        </Card>
-
-        {/* Additional Requirements Section - Print Hidden */}
-        <Card className="mb-6 print:hidden">
-          <CardHeader>
-            <CardTitle className="text-2xl text-blue-600">Additional Requirements</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="additionalRequirements">Description</Label>
-                <Textarea
-                  id="additionalRequirements"
-                  placeholder="Enter additional requirements..."
-                  value={additionalRequirements}
-                  onChange={(e) => setAdditionalRequirements(e.target.value)}
-                  className="min-h-[100px]"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="additionalPrice">Price</Label>
-                <Input
-                  id="additionalPrice"
-                  placeholder="Enter price"
-                  value={additionalPrice}
-                  onChange={(e) => setAdditionalPrice(e.target.value)}
-                  type="number"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Pricing Configuration Section - Print Hidden */}
-        <Card className="mb-6 print:hidden">
-          <CardHeader>
-            <CardTitle className="text-2xl text-purple-600 flex items-center gap-2">
-              <Settings className="h-6 w-6" />
-              Pricing Configuration
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="pricingCategory">Price Category</Label>
-                <Select 
-                  value={selectedPricingCategory} 
-                  onValueChange={(value: PricingCategoryKey) => setSelectedPricingCategory(value)}
-                >
-                  <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="Select pricing category" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white border shadow-lg z-50">
-                    {Object.entries(pricingCategoryLabels).map(([key, label]) => (
-                      <SelectItem key={key} value={key}>{label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="tier">Tier</Label>
-                <Select 
-                  value={selectedTier} 
-                  onValueChange={(value: TierKey) => setSelectedTier(value)}
-                >
-                  <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="Select tier" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white border shadow-lg z-50">
-                    {Object.entries(tierLabels).map(([key, label]) => (
-                      <SelectItem key={key} value={key}>{label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-600 mb-2">
-                <strong>Selected:</strong> {pricingCategoryLabels[selectedPricingCategory]} - {tierLabels[selectedTier]}
-              </p>
-              <p className="text-sm text-gray-600">
-                <strong>Price Multiplier:</strong> {(pricingMultipliers[selectedPricingCategory][selectedTier] * 100).toFixed(0)}% of base price
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Selected Components & Pricing */}
-        {selectedComponents.length > 0 && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="text-2xl text-green-600 flex items-center gap-2">
-                <DollarSign className="h-6 w-6" />
-                Selected Components & Pricing
-                <Badge variant="outline" className="ml-2">
-                  {pricingCategoryLabels[selectedPricingCategory]} - {tierLabels[selectedTier]}
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {Object.entries(groupedComponents).map(([category, components]) => (
-                <div key={category} className="mb-6">
-                  <h3 className="text-lg font-semibold text-blue-600 mb-3">{category}</h3>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Component</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead className="text-right">Qty</TableHead>
-                        <TableHead className="text-right">Base Price</TableHead>
-                        <TableHead className="text-right">Adjusted Price</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {components.map((component) => {
-                        const adjustedPrice = calculateAdjustedPrice(component.unitPrice);
-                        return (
-                          <TableRow key={component.id}>
-                            <TableCell className="font-medium">{component.name}</TableCell>
-                            <TableCell className="text-sm text-gray-600">{component.description}</TableCell>
-                            <TableCell className="text-right">{component.quantity}</TableCell>
-                            <TableCell className="text-right text-gray-500">${component.unitPrice.toLocaleString()}</TableCell>
-                            <TableCell className="text-right font-semibold">${adjustedPrice.toLocaleString()}</TableCell>
-                            <TableCell className="text-right font-semibold">
-                              ${(adjustedPrice * component.quantity).toLocaleString()}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              ))}
-
-              {/* Smart Parking Management Client License */}
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-blue-600 mb-3">Software Subscription</h3>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Component</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead className="text-right">Qty</TableHead>
-                      <TableHead className="text-right">Unit Price</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell className="font-medium">
-                        Smart Parking Management Client License for 1 Year{' '}
-                        <span className="font-bold text-red-600">(Yearly Recurring)</span>
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-600">Admin Dashboard & Reports</TableCell>
-                      <TableCell className="text-right">1</TableCell>
-                      <TableCell className="text-right">Contact for Pricing</TableCell>
-                      <TableCell className="text-right font-semibold">Contact for Pricing</TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </div>
-
-              {/* Additional Requirements in Pricing Table */}
-              {additionalRequirements && additionalPrice && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-blue-600 mb-3">Additional Requirements</h3>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Component</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead className="text-right">Qty</TableHead>
-                        <TableHead className="text-right">Unit Price</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell className="font-medium">Additional Requirements</TableCell>
-                        <TableCell className="text-sm text-gray-600">{additionalRequirements}</TableCell>
-                        <TableCell className="text-right">1</TableCell>
-                        <TableCell className="text-right">${parseFloat(additionalPrice || '0').toLocaleString()}</TableCell>
-                        <TableCell className="text-right font-semibold">
-                          ${parseFloat(additionalPrice || '0').toLocaleString()}
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-              
-              <div className="border-t-2 pt-4 mt-6">
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center text-xl font-bold">
-                    <span>Total Hardware Cost:</span>
-                    <span className="text-green-600">${totalCost.toLocaleString()}</span>
-                  </div>
-                  
-                  {/* Payment Schedule */}
-                  <div className="mt-6 bg-gray-50 p-4 rounded-lg">
-                    <h4 className="text-lg font-semibold mb-4">Payment Schedule</h4>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="bg-black text-white">Payment Schedule</TableHead>
-                          <TableHead className="bg-cyan-400 text-black text-center">Advance Payment</TableHead>
-                          <TableHead className="bg-cyan-400 text-black text-center">On Installation</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        <TableRow>
-                          <TableCell className="font-medium">Amount</TableCell>
-                          <TableCell className="text-center">₹{advancePayment.toLocaleString()}</TableCell>
-                          <TableCell className="text-center">₹{onInstallationPayment.toLocaleString()}</TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                    <p className="text-sm text-gray-600 mt-2">
-                      *Advance Payment: 90% of total one-time cost (with 18% GST)
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      *On Installation: Remaining 10% of total one-time cost (with 18% GST)
-                    </p>
-                  </div>
-                </div>
-                
-                <p className="text-sm text-gray-600 mt-4">
-                  *Prices exclude installation, training, and maintenance services. 
-                  Final pricing may vary based on site requirements and customizations.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* About Park360 */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Star className="h-6 w-6 text-yellow-500" />
-              About Park360
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <p className="text-gray-700 mb-4">
-                  Park360 is a pioneering technology company specializing in intelligent parking management systems. 
-                  With over a decade of experience, we have successfully deployed solutions across various sectors including 
-                  retail, healthcare, hospitality, and transportation.
-                </p>
-                <ul className="space-y-2">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span className="text-sm">500+ Successful Installations</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span className="text-sm">99.9% System Uptime</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span className="text-sm">24/7 Technical Support</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span className="text-sm">ISO 27001 Certified</span>
-                  </li>
-                </ul>
-              </div>
-              <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-6 rounded-lg">
-                <h4 className="font-semibold text-lg mb-3">Our Mission</h4>
-                <p className="text-gray-700 text-sm">
-                  To revolutionize parking management through innovative technology solutions that enhance operational efficiency, 
-                  improve customer experience, and maximize revenue potential for our clients.
-                </p>
-              </div>
-            </div>
           </CardContent>
         </Card>
 
@@ -676,6 +395,52 @@ const ProposalPreview = ({ proposalData, selectedComponents = [], onBack }: Prop
           </CardContent>
         </Card>
 
+        {/* About Park360 */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Star className="h-6 w-6 text-yellow-500" />
+              About Park360
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <p className="text-gray-700 mb-4">
+                  Park360 is a pioneering technology company specializing in intelligent parking management systems. 
+                  With over a decade of experience, we have successfully deployed solutions across various sectors including 
+                  retail, healthcare, hospitality, and transportation.
+                </p>
+                <ul className="space-y-2">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-sm">500+ Successful Installations</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-sm">99.9% System Uptime</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-sm">24/7 Technical Support</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-sm">ISO 27001 Certified</span>
+                  </li>
+                </ul>
+              </div>
+              <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-6 rounded-lg">
+                <h4 className="font-semibold text-lg mb-3">Our Mission</h4>
+                <p className="text-gray-700 text-sm">
+                  To revolutionize parking management through innovative technology solutions that enhance operational efficiency, 
+                  improve customer experience, and maximize revenue potential for our clients.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Notes */}
         {proposalData.customRequirements && (
           <Card className="mb-6">
@@ -687,6 +452,185 @@ const ProposalPreview = ({ proposalData, selectedComponents = [], onBack }: Prop
             </CardContent>
           </Card>
         )}
+
+        {/* Pricing Configuration Section */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-2xl text-purple-600 flex items-center gap-2">
+              <Settings className="h-6 w-6" />
+              Pricing Configuration
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="pricingCategory">Price Category</Label>
+                <Select 
+                  value={selectedPricingCategory} 
+                  onValueChange={(value: PricingCategoryKey) => setSelectedPricingCategory(value)}
+                >
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Select pricing category" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border shadow-lg z-50">
+                    {Object.entries(pricingCategoryLabels).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tier">Tier</Label>
+                <Select 
+                  value={selectedTier} 
+                  onValueChange={(value: TierKey) => setSelectedTier(value)}
+                >
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Select tier" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border shadow-lg z-50">
+                    {Object.entries(tierLabels).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-600 mb-2">
+                <strong>Selected:</strong> {pricingCategoryLabels[selectedPricingCategory]} - {tierLabels[selectedTier]}
+              </p>
+              <p className="text-sm text-gray-600">
+                <strong>Price Multiplier:</strong> {(pricingMultipliers[selectedPricingCategory][selectedTier] * 100).toFixed(0)}% of base price
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* All Components & Pricing */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-2xl text-green-600 flex items-center gap-2">
+              <DollarSign className="h-6 w-6" />
+              All Components & Pricing
+              <Badge variant="outline" className="ml-2">
+                {pricingCategoryLabels[selectedPricingCategory]} - {tierLabels[selectedTier]}
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {Object.entries(groupedComponents).map(([category, categoryComponents]) => (
+              <div key={category} className="mb-6">
+                <h3 className="text-lg font-semibold text-blue-600 mb-3">{category}</h3>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Component</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Qty</TableHead>
+                      <TableHead className="text-right">Base Price</TableHead>
+                      <TableHead className="text-right">Adjusted Price</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {categoryComponents.map((component) => {
+                      const adjustedPrice = calculateAdjustedPrice(component.basePrice);
+                      return (
+                        <TableRow key={component.id}>
+                          <TableCell className="font-medium">{component.name}</TableCell>
+                          <TableCell className="text-sm text-gray-600">{component.description}</TableCell>
+                          <TableCell className="text-right">
+                            <Input
+                              type="number"
+                              min="0"
+                              value={component.quantity}
+                              onChange={(e) => handleQuantityChange(component.id, parseInt(e.target.value) || 0)}
+                              className="w-20 text-center"
+                            />
+                          </TableCell>
+                          <TableCell className="text-right text-gray-500">₹{component.basePrice.toLocaleString()}</TableCell>
+                          <TableCell className="text-right font-semibold">₹{adjustedPrice.toLocaleString()}</TableCell>
+                          <TableCell className="text-right font-semibold">
+                            ₹{(adjustedPrice * component.quantity).toLocaleString()}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            ))}
+
+            {/* Additional Requirements */}
+            <div className="mt-6 space-y-4">
+              <h3 className="text-lg font-semibold text-blue-600">Additional Requirements</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="additionalRequirements">Description</Label>
+                  <Textarea
+                    id="additionalRequirements"
+                    placeholder="Enter additional requirements..."
+                    value={additionalRequirements}
+                    onChange={(e) => setAdditionalRequirements(e.target.value)}
+                    className="min-h-[100px]"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="additionalPrice">Price</Label>
+                  <Input
+                    id="additionalPrice"
+                    placeholder="Enter price"
+                    value={additionalPrice}
+                    onChange={(e) => setAdditionalPrice(e.target.value)}
+                    type="number"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div className="border-t-2 pt-4 mt-6">
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-xl font-bold">
+                  <span>Total Hardware Cost:</span>
+                  <span className="text-green-600">₹{totalCost.toLocaleString()}</span>
+                </div>
+                
+                {/* Payment Schedule */}
+                <div className="mt-6 bg-gray-50 p-4 rounded-lg">
+                  <h4 className="text-lg font-semibold mb-4">Payment Schedule</h4>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="bg-black text-white">Payment Schedule</TableHead>
+                        <TableHead className="bg-cyan-400 text-black text-center">Advance Payment</TableHead>
+                        <TableHead className="bg-cyan-400 text-black text-center">On Installation</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell className="font-medium">Amount</TableCell>
+                        <TableCell className="text-center">₹{advancePayment.toLocaleString()}</TableCell>
+                        <TableCell className="text-center">₹{onInstallationPayment.toLocaleString()}</TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                  <p className="text-sm text-gray-600 mt-2">
+                    *Advance Payment: 90% of total one-time cost (with 18% GST)
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    *On Installation: Remaining 10% of total one-time cost (with 18% GST)
+                  </p>
+                </div>
+              </div>
+              
+              <p className="text-sm text-gray-600 mt-4">
+                *Prices exclude installation, training, and maintenance services. 
+                Final pricing may vary based on site requirements and customizations.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Call to Action */}
         <Card className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
