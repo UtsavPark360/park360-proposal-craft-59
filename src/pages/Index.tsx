@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import ProposalPreview from '@/components/ProposalPreview';
 import ComponentSelection from '@/components/ComponentSelection';
-import { Building2, Car, CreditCard, UserCheck, Shield, Smartphone } from 'lucide-react';
+import { Building2, Car, CreditCard, UserCheck, Shield, Smartphone, Settings2 } from 'lucide-react';
 
 interface ProposalData {
   clientName: string;
@@ -25,6 +25,8 @@ interface ProposalData {
     valet: boolean;
   };
   customRequirements: string;
+  priceType: string;
+  tierType: string;
 }
 
 interface SelectedComponent {
@@ -53,7 +55,9 @@ const Index = () => {
       payPark: [],
       valet: false
     },
-    customRequirements: ''
+    customRequirements: '',
+    priceType: 'competitiveRetail',
+    tierType: 'tier1'
   });
   const [selectedComponents, setSelectedComponents] = useState<SelectedComponent[]>([]);
 
@@ -170,6 +174,49 @@ const Index = () => {
           </div>
           <p className="text-xl text-gray-600">Smart Parking Solutions Proposal Generator</p>
         </div>
+
+        {/* Pricing Configuration */}
+        <Card className="shadow-lg mb-6">
+          <CardHeader>
+            <CardTitle className="text-2xl flex items-center gap-2">
+              <Settings2 className="h-6 w-6 text-purple-600" />
+              Pricing Configuration
+            </CardTitle>
+            <CardDescription>
+              Configure pricing category and tier for this proposal
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="priceType">Price Category</Label>
+                <Select value={proposalData.priceType} onValueChange={(value) => setProposalData(prev => ({ ...prev, priceType: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select price category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="competitiveRetail">Competitive Retail Price</SelectItem>
+                    <SelectItem value="exclusivePricing">Exclusive Pricing</SelectItem>
+                    <SelectItem value="resellerNoRegret">Reseller No Regret Price</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tierType">Tier</Label>
+                <Select value={proposalData.tierType} onValueChange={(value) => setProposalData(prev => ({ ...prev, tierType: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select tier" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="tier1">Tier 1</SelectItem>
+                    <SelectItem value="tier2">Tier 2</SelectItem>
+                    <SelectItem value="tier3">Tier 3</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Main Form */}
         <Card className="shadow-lg">

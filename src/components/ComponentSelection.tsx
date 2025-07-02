@@ -1,12 +1,11 @@
 
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ArrowLeft, ArrowRight, Plus, Minus, Calculator, IndianRupee } from 'lucide-react';
 import { allComponents, pricingMultipliers, PricingCategoryKey, TierKey } from '@/data/pricingData';
@@ -39,6 +38,8 @@ interface ProposalData {
     valet: boolean;
   };
   customRequirements: string;
+  priceType: string;
+  tierType: string;
 }
 
 interface ComponentSelectionProps {
@@ -48,18 +49,14 @@ interface ComponentSelectionProps {
 }
 
 const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelectionProps) => {
-  // State for dropdown selections
-  const [priceType, setPriceType] = useState<string>('competitiveRetail');
-  const [tierType, setTierType] = useState<string>('tier1');
-  
   // State for software subscription and installation pricing
   const [softwareSubscriptionPrice, setSoftwareSubscriptionPrice] = useState<number>(0);
   const [installationPackagingPrice, setInstallationPackagingPrice] = useState<number>(0);
 
-  // Get pricing multiplier
+  // Get pricing multiplier from proposal data
   const getPriceMultiplier = () => {
-    const categoryKey = priceType as PricingCategoryKey;
-    const tierKey = tierType as TierKey;
+    const categoryKey = proposalData.priceType as PricingCategoryKey;
+    const tierKey = proposalData.tierType as TierKey;
     return pricingMultipliers[categoryKey]?.[tierKey] || 1.0;
   };
 
@@ -73,9 +70,9 @@ const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelection
       category: component.category,
       description: component.description,
       unitPrice: Math.round(component.basePrice * multiplier),
-      minQuantity: 0, // No minimum required
-      maxQuantity: 100, // Set reasonable maximum
-      isRequired: false // No components are required
+      minQuantity: 0,
+      maxQuantity: 100,
+      isRequired: false
     }));
   };
 
@@ -83,13 +80,13 @@ const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelection
     return getAvailableComponents().map(component => ({
       ...component,
       basePrice: component.unitPrice,
-      quantity: 0, // Start with 0 quantity for all
-      selected: false // Start with none selected
+      quantity: 0,
+      selected: false
     }));
   });
 
-  // Update prices when dropdown values change
-  const updatePricing = () => {
+  // Update prices when proposal data changes
+  useEffect(() => {
     const multiplier = getPriceMultiplier();
     const updatedComponents = getAvailableComponents();
     
@@ -104,12 +101,7 @@ const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelection
       }
       return component;
     }));
-  };
-
-  // Update pricing when dropdowns change
-  React.useEffect(() => {
-    updatePricing();
-  }, [priceType, tierType]);
+  }, [proposalData.priceType, proposalData.tierType]);
 
   const handleComponentToggle = (componentId: string, checked: boolean) => {
     setSelectedComponents(prev => prev.map(component => {
@@ -186,6 +178,16 @@ const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelection
   const totalCostWithGST = totalCostWithoutGST + gstAmount;
   const selectedCount = selectedComponents.filter(c => c.selected).length;
 
+  // Get price category display name
+  const getPriceCategoryLabel = () => {
+    const labels = {
+      competitiveRetail: 'Competitive Retail Price',
+      exclusivePricing: 'Exclusive Pricing',
+      resellerNoRegret: 'Reseller No Regret Price'
+    };
+    return labels[proposalData.priceType as keyof typeof labels] || proposalData.priceType;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="max-w-6xl mx-auto">
@@ -198,51 +200,15 @@ const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelection
           <div className="text-center">
             <h1 className="text-3xl font-bold text-gray-900">Component Selection</h1>
             <p className="text-gray-600">Select and configure components for {proposalData.clientName}</p>
+            <Badge variant="secondary" className="mt-2">
+              {getPriceCategoryLabel()} - {proposalData.tierType.toUpperCase()}
+            </Badge>
           </div>
           <div className="text-right">
             <Badge variant="secondary" className="text-lg px-4 py-2">
               {selectedCount} Components Selected
             </Badge>
           </div>
-        </div>
-
-        {/* Dropdown Menus - Price Type and Tier Selection */}
-        <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-2">
-                <Label htmlFor="priceType">Price Type</Label>
-                <Select value={priceType} onValueChange={setPriceType}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select price type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="competitiveRetail">Competitive Retail</SelectItem>
-                    <SelectItem value="exclusivePricing">Exclusive Partner</SelectItem>
-                    <SelectItem value="resellerNoRegret">Reseller Price</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-2">
-                <Label htmlFor="tierType">Tier Type</Label>
-                <Select value={tierType} onValueChange={setTierType}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select tier type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="tier1">Tier 1</SelectItem>
-                    <SelectItem value="tier2">Tier 2</SelectItem>
-                    <SelectItem value="tier3">Tier 3</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Component Categories */}
