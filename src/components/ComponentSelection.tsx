@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,6 +21,7 @@ interface ComponentItem {
 }
 
 interface SelectedComponent extends ComponentItem {
+  basePrice: number;
   quantity: number;
   selected: boolean;
 }
@@ -126,6 +126,7 @@ const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelection
   const [selectedComponents, setSelectedComponents] = useState<SelectedComponent[]>(() => {
     return getAvailableComponents().map(component => ({
       ...component,
+      basePrice: component.unitPrice, // Add basePrice property with unitPrice as fallback
       quantity: component.isRequired ? component.minQuantity : 0,
       selected: component.isRequired
     }));
