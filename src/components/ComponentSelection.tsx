@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ArrowLeft, ArrowRight, Plus, Minus, Calculator, IndianRupee } from 'lucide-react';
+import { allComponents, pricingMultipliers, PricingCategoryKey, TierKey } from '@/data/pricingData';
 
 interface ComponentItem {
   id: string;
@@ -47,90 +49,67 @@ interface ComponentSelectionProps {
 
 const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelectionProps) => {
   // State for dropdown selections
-  const [priceType, setPriceType] = useState<string>('');
-  const [tierType, setTierType] = useState<string>('');
+  const [priceType, setPriceType] = useState<string>('competitiveRetail');
+  const [tierType, setTierType] = useState<string>('tier1');
   
   // State for software subscription and installation pricing
   const [softwareSubscriptionPrice, setSoftwareSubscriptionPrice] = useState<number>(0);
   const [installationPackagingPrice, setInstallationPackagingPrice] = useState<number>(0);
 
-  // Component catalog based on selected solutions
+  // Get pricing multiplier
+  const getPriceMultiplier = () => {
+    const categoryKey = priceType as PricingCategoryKey;
+    const tierKey = tierType as TierKey;
+    return pricingMultipliers[categoryKey]?.[tierKey] || 1.0;
+  };
+
+  // Convert all components from pricing data to ComponentItem format
   const getAvailableComponents = (): ComponentItem[] => {
-    const components: ComponentItem[] = [];
-
-    // Authorization components
-    if (proposalData.solutions.authorization.includes('UHF-based Authorization')) {
-      components.push(
-        { id: 'uhf-reader', name: 'UHF RFID Reader', category: 'Authorization', description: 'Long-range UHF RFID reader for vehicle detection', unitPrice: 1200, minQuantity: 1, maxQuantity: 10, isRequired: true },
-        { id: 'uhf-tags', name: 'UHF RFID Tags', category: 'Authorization', description: 'Vehicle windshield UHF tags', unitPrice: 5, minQuantity: 100, maxQuantity: 5000, isRequired: true },
-        { id: 'uhf-antenna', name: 'UHF Antenna', category: 'Authorization', description: 'External UHF antenna for enhanced range', unitPrice: 300, minQuantity: 1, maxQuantity: 4, isRequired: false }
-      );
-    }
-
-    if (proposalData.solutions.authorization.includes('RFID-based Authorization')) {
-      components.push(
-        { id: 'rfid-reader', name: 'RFID Card Reader', category: 'Authorization', description: 'Proximity RFID card reader', unitPrice: 800, minQuantity: 1, maxQuantity: 8, isRequired: true },
-        { id: 'rfid-cards', name: 'RFID Access Cards', category: 'Authorization', description: 'Proximity access cards for users', unitPrice: 2, minQuantity: 100, maxQuantity: 10000, isRequired: true }
-      );
-    }
-
-    if (proposalData.solutions.authorization.includes('ANPR (Automatic Number Plate Recognition)')) {
-      components.push(
-        { id: 'anpr-camera', name: 'ANPR Camera', category: 'Authorization', description: 'High-resolution camera for license plate recognition', unitPrice: 2500, minQuantity: 1, maxQuantity: 6, isRequired: true },
-        { id: 'anpr-software', name: 'ANPR Software License', category: 'Authorization', description: 'AI-powered license plate recognition software', unitPrice: 1500, minQuantity: 1, maxQuantity: 1, isRequired: true }
-      );
-    }
-
-    // Pay & Park components
-    if (proposalData.solutions.payPark.includes('TVM-based (Ticket Vending Machine)')) {
-      components.push(
-        { id: 'tvm-machine', name: 'Ticket Vending Machine', category: 'Payment', description: 'Self-service ticket vending machine with payment options', unitPrice: 8000, minQuantity: 1, maxQuantity: 5, isRequired: true },
-        { id: 'tvm-printer', name: 'Thermal Printer', category: 'Payment', description: 'Replacement thermal printer for TVM', unitPrice: 400, minQuantity: 1, maxQuantity: 3, isRequired: false }
-      );
-    }
-
-    if (proposalData.solutions.payPark.includes('POS-based (Point of Sale)')) {
-      components.push(
-        { id: 'pos-terminal', name: 'POS Terminal', category: 'Payment', description: 'Handheld POS terminal for payments', unitPrice: 1200, minQuantity: 1, maxQuantity: 10, isRequired: true },
-        { id: 'pos-printer', name: 'Receipt Printer', category: 'Payment', description: 'Portable receipt printer', unitPrice: 300, minQuantity: 1, maxQuantity: 5, isRequired: false }
-      );
-    }
-
-    if (proposalData.solutions.payPark.includes('FASTag-based Integration')) {
-      components.push(
-        { id: 'fastag-reader', name: 'FASTag Reader', category: 'Payment', description: 'FASTag RFID reader for automatic payments', unitPrice: 1800, minQuantity: 1, maxQuantity: 4, isRequired: true }
-      );
-    }
-
-    // Valet components
-    if (proposalData.solutions.valet) {
-      components.push(
-        { id: 'valet-app', name: 'Valet Mobile App License', category: 'Valet', description: 'Mobile application for valet management', unitPrice: 2000, minQuantity: 1, maxQuantity: 1, isRequired: true },
-        { id: 'valet-tablet', name: 'Valet Tablet', category: 'Valet', description: 'Rugged tablet for valet attendants', unitPrice: 600, minQuantity: 2, maxQuantity: 20, isRequired: true },
-        { id: 'key-management', name: 'Smart Key Management System', category: 'Valet', description: 'Automated key storage and retrieval system', unitPrice: 5000, minQuantity: 1, maxQuantity: 3, isRequired: false }
-      );
-    }
-
-    // Common infrastructure components
-    components.push(
-      { id: 'barrier-gate', name: 'Automatic Barrier Gate', category: 'Infrastructure', description: 'Motorized barrier gate for entry/exit control', unitPrice: 3500, minQuantity: 1, maxQuantity: 8, isRequired: true },
-      { id: 'loop-detector', name: 'Vehicle Loop Detector', category: 'Infrastructure', description: 'Inductive loop sensor for vehicle detection', unitPrice: 200, minQuantity: 2, maxQuantity: 16, isRequired: true },
-      { id: 'led-display', name: 'LED Display Board', category: 'Infrastructure', description: 'LED display for parking guidance', unitPrice: 1500, minQuantity: 1, maxQuantity: 10, isRequired: false },
-      { id: 'central-server', name: 'Central Management Server', category: 'Infrastructure', description: 'Server for centralized parking management', unitPrice: 12000, minQuantity: 1, maxQuantity: 1, isRequired: true },
-      { id: 'ups-system', name: 'UPS Backup System', category: 'Infrastructure', description: 'Uninterrupted power supply for critical components', unitPrice: 2500, minQuantity: 1, maxQuantity: 3, isRequired: false }
-    );
-
-    return components;
+    const multiplier = getPriceMultiplier();
+    
+    return allComponents.map(component => ({
+      id: component.id,
+      name: component.name,
+      category: component.category,
+      description: component.description,
+      unitPrice: Math.round(component.basePrice * multiplier),
+      minQuantity: 0, // No minimum required
+      maxQuantity: 100, // Set reasonable maximum
+      isRequired: false // No components are required
+    }));
   };
 
   const [selectedComponents, setSelectedComponents] = useState<SelectedComponent[]>(() => {
     return getAvailableComponents().map(component => ({
       ...component,
-      basePrice: component.unitPrice, // Add basePrice property with unitPrice as fallback
-      quantity: component.isRequired ? component.minQuantity : 0,
-      selected: component.isRequired
+      basePrice: component.unitPrice,
+      quantity: 0, // Start with 0 quantity for all
+      selected: false // Start with none selected
     }));
   });
+
+  // Update prices when dropdown values change
+  const updatePricing = () => {
+    const multiplier = getPriceMultiplier();
+    const updatedComponents = getAvailableComponents();
+    
+    setSelectedComponents(prev => prev.map(component => {
+      const updatedComponent = updatedComponents.find(c => c.id === component.id);
+      if (updatedComponent) {
+        return {
+          ...component,
+          unitPrice: updatedComponent.unitPrice,
+          basePrice: updatedComponent.unitPrice
+        };
+      }
+      return component;
+    }));
+  };
+
+  // Update pricing when dropdowns change
+  React.useEffect(() => {
+    updatePricing();
+  }, [priceType, tierType]);
 
   const handleComponentToggle = (componentId: string, checked: boolean) => {
     setSelectedComponents(prev => prev.map(component => {
@@ -138,7 +117,7 @@ const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelection
         return {
           ...component,
           selected: checked,
-          quantity: checked ? Math.max(component.quantity, component.minQuantity) : 0
+          quantity: checked ? Math.max(component.quantity, 1) : 0
         };
       }
       return component;
@@ -148,10 +127,7 @@ const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelection
   const handleQuantityChange = (componentId: string, newQuantity: number) => {
     setSelectedComponents(prev => prev.map(component => {
       if (component.id === componentId) {
-        const clampedQuantity = Math.max(
-          component.minQuantity,
-          Math.min(component.maxQuantity, newQuantity)
-        );
+        const clampedQuantity = Math.max(0, Math.min(component.maxQuantity, newQuantity));
         return {
           ...component,
           quantity: clampedQuantity,
@@ -230,7 +206,46 @@ const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelection
           </div>
         </div>
 
-        {/* Component Categories - Now at the top */}
+        {/* Dropdown Menus - Price Type and Tier Selection */}
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-2">
+                <Label htmlFor="priceType">Price Type</Label>
+                <Select value={priceType} onValueChange={setPriceType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select price type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="competitiveRetail">Competitive Retail</SelectItem>
+                    <SelectItem value="exclusivePricing">Exclusive Partner</SelectItem>
+                    <SelectItem value="resellerNoRegret">Reseller Price</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-2">
+                <Label htmlFor="tierType">Tier Type</Label>
+                <Select value={tierType} onValueChange={setTierType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select tier type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="tier1">Tier 1</SelectItem>
+                    <SelectItem value="tier2">Tier 2</SelectItem>
+                    <SelectItem value="tier3">Tier 3</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Component Categories */}
         <div className="space-y-6 mb-6">
           {Object.entries(groupedComponents).map(([category, components]) => (
             <Card key={category}>
@@ -247,13 +262,11 @@ const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelection
                             <Checkbox
                               id={component.id}
                               checked={component.selected}
-                              disabled={component.isRequired}
                               onCheckedChange={(checked) => handleComponentToggle(component.id, checked as boolean)}
                             />
                             <div>
                               <Label htmlFor={component.id} className="font-semibold text-gray-900">
                                 {component.name}
-                                {component.isRequired && <Badge variant="destructive" className="ml-2 text-xs">Required</Badge>}
                               </Label>
                               <p className="text-sm text-gray-600 mt-1">{component.description}</p>
                             </div>
@@ -276,7 +289,7 @@ const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelection
                                   size="sm"
                                   variant="outline"
                                   onClick={() => adjustQuantity(component.id, -1)}
-                                  disabled={component.quantity <= component.minQuantity}
+                                  disabled={component.quantity <= 0}
                                 >
                                   <Minus className="h-3 w-3" />
                                 </Button>
@@ -285,7 +298,7 @@ const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelection
                                   value={component.quantity}
                                   onChange={(e) => handleQuantityChange(component.id, parseInt(e.target.value) || 0)}
                                   className="w-20 text-center"
-                                  min={component.minQuantity}
+                                  min={0}
                                   max={component.maxQuantity}
                                 />
                                 <Button
@@ -314,45 +327,6 @@ const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelection
               </CardContent>
             </Card>
           ))}
-        </div>
-
-        {/* Dropdown Menus - Now after component selection */}
-        <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-2">
-                <Label htmlFor="priceType">Price Type</Label>
-                <Select value={priceType} onValueChange={setPriceType}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select price type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="competitive-retail">Competitive Retail</SelectItem>
-                    <SelectItem value="exclusive-partner">Exclusive Partner</SelectItem>
-                    <SelectItem value="reseller-price">Reseller Price</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-2">
-                <Label htmlFor="tierType">Tier Type</Label>
-                <Select value={tierType} onValueChange={setTierType}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select tier type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="tier-1">Tier 1</SelectItem>
-                    <SelectItem value="tier-2">Tier 2</SelectItem>
-                    <SelectItem value="tier-3">Tier 3</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Software Subscription Section */}
@@ -433,7 +407,7 @@ const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelection
           </CardContent>
         </Card>
 
-        {/* Consolidated Pricing Table - Now after component selection */}
+        {/* Consolidated Pricing Table */}
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="text-2xl text-green-600 flex items-center gap-2">
@@ -572,7 +546,6 @@ const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelection
           <Button
             onClick={() => onNext(getSelectedComponentsForNext())}
             className="bg-blue-600 hover:bg-blue-700 text-lg px-8 py-3 flex items-center gap-2"
-            disabled={selectedCount === 0}
           >
             Generate Proposal with Selected Components
             <ArrowRight className="h-5 w-5" />
