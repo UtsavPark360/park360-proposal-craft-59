@@ -1,14 +1,11 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Car, Phone, Mail, Globe, CheckCircle, Star, Shield, CreditCard, UserCheck, Smartphone, Download, Calendar, DollarSign, Settings } from 'lucide-react';
-import { pricingMultipliers, pricingCategoryLabels, tierLabels, PricingCategoryKey, TierKey, allComponents, ComponentItem } from '@/data/pricingData';
+import { Label } from '@/components/ui/label';
+import { ArrowLeft, Car, Phone, Mail, Globe, CheckCircle, Star, Shield, CreditCard, UserCheck, Smartphone, Download, Calendar } from 'lucide-react';
 
 interface ProposalData {
   clientName: string;
@@ -23,6 +20,15 @@ interface ProposalData {
   customRequirements: string;
 }
 
+interface ComponentItem {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  basePrice: number;
+  quantity: number;
+}
+
 interface ProposalPreviewProps {
   proposalData: ProposalData;
   selectedComponents?: ComponentItem[];
@@ -31,16 +37,6 @@ interface ProposalPreviewProps {
 
 const ProposalPreview = ({ proposalData, selectedComponents = [], onBack }: ProposalPreviewProps) => {
   const [additionalRequirements, setAdditionalRequirements] = useState('');
-  const [additionalPrice, setAdditionalPrice] = useState('');
-  const [selectedPricingCategory, setSelectedPricingCategory] = useState<PricingCategoryKey>('competitiveRetail');
-  const [selectedTier, setSelectedTier] = useState<TierKey>('tier1');
-  const [components, setComponents] = useState<ComponentItem[]>(allComponents);
-
-  const handleQuantityChange = (id: string, quantity: number) => {
-    setComponents(prev => prev.map(comp => 
-      comp.id === id ? { ...comp, quantity: Math.max(0, quantity) } : comp
-    ));
-  };
 
   const handlePrint = () => {
     window.print();
@@ -75,38 +71,6 @@ const ProposalPreview = ({ proposalData, selectedComponents = [], onBack }: Prop
     };
     return benefitsMap[solution] || ['Enhanced efficiency', 'Cost reduction', 'Improved security'];
   };
-
-  const calculateAdjustedPrice = (basePrice: number) => {
-    const multiplier = pricingMultipliers[selectedPricingCategory][selectedTier];
-    return Math.round(basePrice * multiplier);
-  };
-
-  const calculateTotalCost = () => {
-    const componentsCost = components.reduce((total, component) => {
-      if (component.quantity > 0) {
-        const adjustedPrice = calculateAdjustedPrice(component.basePrice);
-        return total + (adjustedPrice * component.quantity);
-      }
-      return total;
-    }, 0);
-    const additionalCost = additionalPrice ? parseFloat(additionalPrice) || 0 : 0;
-    return componentsCost + additionalCost;
-  };
-
-  const groupComponentsByCategory = () => {
-    return components.reduce((groups, component) => {
-      if (!groups[component.category]) {
-        groups[component.category] = [];
-      }
-      groups[component.category].push(component);
-      return groups;
-    }, {} as Record<string, ComponentItem[]>);
-  };
-
-  const totalCost = calculateTotalCost();
-  const advancePayment = Math.round(totalCost * 0.9 * 1.18); // 90% with 18% GST
-  const onInstallationPayment = Math.round(totalCost * 0.1 * 1.18); // 10% with 18% GST
-  const groupedComponents = groupComponentsByCategory();
 
   return (
     <div className="min-h-screen bg-white">
@@ -151,7 +115,7 @@ const ProposalPreview = ({ proposalData, selectedComponents = [], onBack }: Prop
             <p className="text-gray-700 text-xl font-medium">{proposalData.clientType}</p>
           </div>
           <div className="text-center p-4 bg-green-50 rounded-lg">
-            <h3 className="font-semibold text-green-600 text-lg">Tier Type</h3>
+            <h3 className="font-semibold text-green-600 text-lg">Facility Size</h3>
             <p className="text-gray-700 text-xl font-medium">{proposalData.clientSize}</p>
           </div>
         </div>
@@ -178,7 +142,7 @@ const ProposalPreview = ({ proposalData, selectedComponents = [], onBack }: Prop
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <div className="text-center p-4 bg-blue-50 rounded-lg">
                 <h4 className="font-semibold text-blue-600">Client Type</h4>
                 <p className="text-gray-700">{proposalData.clientType}</p>
@@ -189,11 +153,7 @@ const ProposalPreview = ({ proposalData, selectedComponents = [], onBack }: Prop
               </div>
               <div className="text-center p-4 bg-purple-50 rounded-lg">
                 <h4 className="font-semibold text-purple-600">Components</h4>
-                <p className="text-gray-700">{components.length} Selected</p>
-              </div>
-              <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                <h4 className="font-semibold text-yellow-600">Total Cost</h4>
-                <p className="text-gray-700 font-bold">₹{totalCost.toLocaleString()}</p>
+                <p className="text-gray-700">{selectedComponents.length} Selected</p>
               </div>
             </div>
             
@@ -453,181 +413,21 @@ const ProposalPreview = ({ proposalData, selectedComponents = [], onBack }: Prop
           </Card>
         )}
 
-        {/* Pricing Configuration Section */}
+        {/* Additional Requirements */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="text-2xl text-purple-600 flex items-center gap-2">
-              <Settings className="h-6 w-6" />
-              Pricing Configuration
-            </CardTitle>
+            <CardTitle>Additional Requirements</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="pricingCategory">Price Category</Label>
-                <Select 
-                  value={selectedPricingCategory} 
-                  onValueChange={(value: PricingCategoryKey) => setSelectedPricingCategory(value)}
-                >
-                  <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="Select pricing category" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white border shadow-lg z-50">
-                    {Object.entries(pricingCategoryLabels).map(([key, label]) => (
-                      <SelectItem key={key} value={key}>{label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="tier">Tier</Label>
-                <Select 
-                  value={selectedTier} 
-                  onValueChange={(value: TierKey) => setSelectedTier(value)}
-                >
-                  <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="Select tier" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white border shadow-lg z-50">
-                    {Object.entries(tierLabels).map(([key, label]) => (
-                      <SelectItem key={key} value={key}>{label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-600 mb-2">
-                <strong>Selected:</strong> {pricingCategoryLabels[selectedPricingCategory]} - {tierLabels[selectedTier]}
-              </p>
-              <p className="text-sm text-gray-600">
-                <strong>Price Multiplier:</strong> {(pricingMultipliers[selectedPricingCategory][selectedTier] * 100).toFixed(0)}% of base price
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* All Components & Pricing */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-2xl text-green-600 flex items-center gap-2">
-              <DollarSign className="h-6 w-6" />
-              All Components & Pricing
-              <Badge variant="outline" className="ml-2">
-                {pricingCategoryLabels[selectedPricingCategory]} - {tierLabels[selectedTier]}
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {Object.entries(groupedComponents).map(([category, categoryComponents]) => (
-              <div key={category} className="mb-6">
-                <h3 className="text-lg font-semibold text-blue-600 mb-3">{category}</h3>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Component</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead className="text-right">Qty</TableHead>
-                      <TableHead className="text-right">Base Price</TableHead>
-                      <TableHead className="text-right">Adjusted Price</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {categoryComponents.map((component) => {
-                      const adjustedPrice = calculateAdjustedPrice(component.basePrice);
-                      return (
-                        <TableRow key={component.id}>
-                          <TableCell className="font-medium">{component.name}</TableCell>
-                          <TableCell className="text-sm text-gray-600">{component.description}</TableCell>
-                          <TableCell className="text-right">
-                            <Input
-                              type="number"
-                              min="0"
-                              value={component.quantity}
-                              onChange={(e) => handleQuantityChange(component.id, parseInt(e.target.value) || 0)}
-                              className="w-20 text-center"
-                            />
-                          </TableCell>
-                          <TableCell className="text-right text-gray-500">₹{component.basePrice.toLocaleString()}</TableCell>
-                          <TableCell className="text-right font-semibold">₹{adjustedPrice.toLocaleString()}</TableCell>
-                          <TableCell className="text-right font-semibold">
-                            ₹{(adjustedPrice * component.quantity).toLocaleString()}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            ))}
-
-            {/* Additional Requirements */}
-            <div className="mt-6 space-y-4">
-              <h3 className="text-lg font-semibold text-blue-600">Additional Requirements</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="additionalRequirements">Description</Label>
-                  <Textarea
-                    id="additionalRequirements"
-                    placeholder="Enter additional requirements..."
-                    value={additionalRequirements}
-                    onChange={(e) => setAdditionalRequirements(e.target.value)}
-                    className="min-h-[100px]"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="additionalPrice">Price</Label>
-                  <Input
-                    id="additionalPrice"
-                    placeholder="Enter price"
-                    value={additionalPrice}
-                    onChange={(e) => setAdditionalPrice(e.target.value)}
-                    type="number"
-                  />
-                </div>
-              </div>
-            </div>
-            
-            <div className="border-t-2 pt-4 mt-6">
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-xl font-bold">
-                  <span>Total Hardware Cost:</span>
-                  <span className="text-green-600">₹{totalCost.toLocaleString()}</span>
-                </div>
-                
-                {/* Payment Schedule */}
-                <div className="mt-6 bg-gray-50 p-4 rounded-lg">
-                  <h4 className="text-lg font-semibold mb-4">Payment Schedule</h4>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="bg-black text-white">Payment Schedule</TableHead>
-                        <TableHead className="bg-cyan-400 text-black text-center">Advance Payment</TableHead>
-                        <TableHead className="bg-cyan-400 text-black text-center">On Installation</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell className="font-medium">Amount</TableCell>
-                        <TableCell className="text-center">₹{advancePayment.toLocaleString()}</TableCell>
-                        <TableCell className="text-center">₹{onInstallationPayment.toLocaleString()}</TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                  <p className="text-sm text-gray-600 mt-2">
-                    *Advance Payment: 90% of total one-time cost (with 18% GST)
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    *On Installation: Remaining 10% of total one-time cost (with 18% GST)
-                  </p>
-                </div>
-              </div>
-              
-              <p className="text-sm text-gray-600 mt-4">
-                *Prices exclude installation, training, and maintenance services. 
-                Final pricing may vary based on site requirements and customizations.
-              </p>
+            <div className="space-y-2">
+              <Label htmlFor="additionalRequirements">Description</Label>
+              <Textarea
+                id="additionalRequirements"
+                placeholder="Enter additional requirements..."
+                value={additionalRequirements}
+                onChange={(e) => setAdditionalRequirements(e.target.value)}
+                className="min-h-[100px]"
+              />
             </div>
           </CardContent>
         </Card>
