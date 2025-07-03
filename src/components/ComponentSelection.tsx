@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, ArrowRight, Plus, Minus, Calculator, IndianRupee } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Plus, Minus, Calculator, IndianRupee, Settings, Zap } from 'lucide-react';
 import { allComponents, pricingMultipliers, PricingCategoryKey, TierKey } from '@/data/pricingData';
 
 interface ComponentItem {
@@ -52,6 +51,9 @@ const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelection
   // State for software subscription and installation pricing
   const [softwareSubscriptionPrice, setSoftwareSubscriptionPrice] = useState<number>(0);
   const [installationPackagingPrice, setInstallationPackagingPrice] = useState<number>(0);
+  
+  // State for API integration
+  const [apiIntegrationPrice, setApiIntegrationPrice] = useState<number>(0);
 
   // Get pricing multiplier from proposal data
   const getPriceMultiplier = () => {
@@ -137,20 +139,14 @@ const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelection
     }
   };
 
-  const adjustPrice = (type: 'software' | 'installation', delta: number) => {
-    if (type === 'software') {
-      setSoftwareSubscriptionPrice(prev => Math.max(0, prev + delta));
-    } else {
-      setInstallationPackagingPrice(prev => Math.max(0, prev + delta));
-    }
-  };
-
-  const handlePriceChange = (type: 'software' | 'installation', value: string) => {
+  const handlePriceChange = (type: 'software' | 'installation' | 'api', value: string) => {
     const numValue = parseInt(value) || 0;
     if (type === 'software') {
       setSoftwareSubscriptionPrice(Math.max(0, numValue));
-    } else {
+    } else if (type === 'installation') {
       setInstallationPackagingPrice(Math.max(0, numValue));
+    } else if (type === 'api') {
+      setApiIntegrationPrice(Math.max(0, numValue));
     }
   };
 
@@ -158,7 +154,7 @@ const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelection
     const componentsCost = selectedComponents
       .filter(component => component.selected)
       .reduce((total, component) => total + (component.unitPrice * component.quantity), 0);
-    return componentsCost + softwareSubscriptionPrice + installationPackagingPrice;
+    return componentsCost + softwareSubscriptionPrice + installationPackagingPrice + apiIntegrationPrice;
   };
 
   const getSelectedComponentsForNext = () => {
@@ -303,32 +299,40 @@ const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelection
           <CardContent>
             <div className="flex items-center gap-4">
               <Label className="text-sm font-medium">Price:</Label>
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => adjustPrice('software', -500)}
-                  disabled={softwareSubscriptionPrice <= 0}
-                >
-                  <Minus className="h-3 w-3" />
-                </Button>
-                <div className="flex items-center">
-                  <IndianRupee className="h-4 w-4 text-gray-600" />
-                  <Input
-                    type="number"
-                    value={softwareSubscriptionPrice}
-                    onChange={(e) => handlePriceChange('software', e.target.value)}
-                    className="w-32 text-center"
-                    min={0}
-                  />
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => adjustPrice('software', 500)}
-                >
-                  <Plus className="h-3 w-3" />
-                </Button>
+              <div className="flex items-center">
+                <IndianRupee className="h-4 w-4 text-gray-600" />
+                <Input
+                  type="number"
+                  value={softwareSubscriptionPrice}
+                  onChange={(e) => handlePriceChange('software', e.target.value)}
+                  className="w-32 text-center"
+                  min={0}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* API Integration Section */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-xl text-blue-600 flex items-center gap-2">
+              <Zap className="h-5 w-5" />
+              API Integration
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <Label className="text-sm font-medium">Price:</Label>
+              <div className="flex items-center">
+                <IndianRupee className="h-4 w-4 text-gray-600" />
+                <Input
+                  type="number"
+                  value={apiIntegrationPrice}
+                  onChange={(e) => handlePriceChange('api', e.target.value)}
+                  className="w-32 text-center"
+                  min={0}
+                />
               </div>
             </div>
           </CardContent>
@@ -342,32 +346,15 @@ const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelection
           <CardContent>
             <div className="flex items-center gap-4">
               <Label className="text-sm font-medium">Price:</Label>
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => adjustPrice('installation', -500)}
-                  disabled={installationPackagingPrice <= 0}
-                >
-                  <Minus className="h-3 w-3" />
-                </Button>
-                <div className="flex items-center">
-                  <IndianRupee className="h-4 w-4 text-gray-600" />
-                  <Input
-                    type="number"
-                    value={installationPackagingPrice}
-                    onChange={(e) => handlePriceChange('installation', e.target.value)}
-                    className="w-32 text-center"
-                    min={0}
-                  />
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => adjustPrice('installation', 500)}
-                >
-                  <Plus className="h-3 w-3" />
-                </Button>
+              <div className="flex items-center">
+                <IndianRupee className="h-4 w-4 text-gray-600" />
+                <Input
+                  type="number"
+                  value={installationPackagingPrice}
+                  onChange={(e) => handlePriceChange('installation', e.target.value)}
+                  className="w-32 text-center"
+                  min={0}
+                />
               </div>
             </div>
           </CardContent>
@@ -435,6 +422,24 @@ const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelection
 
                 <TableRow>
                   <TableCell>{selectedComponents.filter(c => c.selected).length + 2}</TableCell>
+                  <TableCell className="font-medium">API Integration</TableCell>
+                  <TableCell className="text-right">1</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <IndianRupee className="h-4 w-4" />
+                      {apiIntegrationPrice.toLocaleString()}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right font-semibold">
+                    <div className="flex items-center justify-end gap-1">
+                      <IndianRupee className="h-4 w-4" />
+                      {apiIntegrationPrice.toLocaleString()}
+                    </div>
+                  </TableCell>
+                </TableRow>
+
+                <TableRow>
+                  <TableCell>{selectedComponents.filter(c => c.selected).length + 3}</TableCell>
                   <TableCell className="font-medium">Installation and Packaging</TableCell>
                   <TableCell className="text-right">1</TableCell>
                   <TableCell className="text-right">
