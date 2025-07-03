@@ -49,11 +49,11 @@ interface ComponentSelectionProps {
 
 const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelectionProps) => {
   // State for software subscription and installation pricing
-  const [softwareSubscriptionPrice, setSoftwareSubscriptionPrice] = useState<number>(0);
-  const [installationPackagingPrice, setInstallationPackagingPrice] = useState<number>(0);
+  const [softwareSubscriptionPrice, setSoftwareSubscriptionPrice] = useState<string>('');
+  const [installationPackagingPrice, setInstallationPackagingPrice] = useState<string>('');
   
   // State for API integration
-  const [apiIntegrationPrice, setApiIntegrationPrice] = useState<number>(0);
+  const [apiIntegrationPrice, setApiIntegrationPrice] = useState<string>('');
 
   // Get pricing multiplier from proposal data
   const getPriceMultiplier = () => {
@@ -140,13 +140,12 @@ const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelection
   };
 
   const handlePriceChange = (type: 'software' | 'installation' | 'api', value: string) => {
-    const numValue = parseInt(value) || 0;
     if (type === 'software') {
-      setSoftwareSubscriptionPrice(Math.max(0, numValue));
+      setSoftwareSubscriptionPrice(value);
     } else if (type === 'installation') {
-      setInstallationPackagingPrice(Math.max(0, numValue));
+      setInstallationPackagingPrice(value);
     } else if (type === 'api') {
-      setApiIntegrationPrice(Math.max(0, numValue));
+      setApiIntegrationPrice(value);
     }
   };
 
@@ -154,7 +153,12 @@ const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelection
     const componentsCost = selectedComponents
       .filter(component => component.selected)
       .reduce((total, component) => total + (component.unitPrice * component.quantity), 0);
-    return componentsCost + softwareSubscriptionPrice + installationPackagingPrice + apiIntegrationPrice;
+    
+    const softwarePrice = parseFloat(softwareSubscriptionPrice) || 0;
+    const installationPrice = parseFloat(installationPackagingPrice) || 0;
+    const apiPrice = parseFloat(apiIntegrationPrice) || 0;
+    
+    return componentsCost + softwarePrice + installationPrice + apiPrice;
   };
 
   const getSelectedComponentsForNext = () => {
@@ -307,6 +311,7 @@ const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelection
                   onChange={(e) => handlePriceChange('software', e.target.value)}
                   className="w-32 text-center"
                   min={0}
+                  placeholder="Enter price"
                 />
               </div>
             </div>
@@ -332,6 +337,7 @@ const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelection
                   onChange={(e) => handlePriceChange('api', e.target.value)}
                   className="w-32 text-center"
                   min={0}
+                  placeholder="Enter price"
                 />
               </div>
             </div>
@@ -354,6 +360,7 @@ const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelection
                   onChange={(e) => handlePriceChange('installation', e.target.value)}
                   className="w-32 text-center"
                   min={0}
+                  placeholder="Enter price"
                 />
               </div>
             </div>
@@ -409,13 +416,13 @@ const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelection
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       <IndianRupee className="h-4 w-4" />
-                      {softwareSubscriptionPrice.toLocaleString()}
+                      {(parseFloat(softwareSubscriptionPrice) || 0).toLocaleString()}
                     </div>
                   </TableCell>
                   <TableCell className="text-right font-semibold">
                     <div className="flex items-center justify-end gap-1">
                       <IndianRupee className="h-4 w-4" />
-                      {softwareSubscriptionPrice.toLocaleString()}
+                      {(parseFloat(softwareSubscriptionPrice) || 0).toLocaleString()}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -427,13 +434,13 @@ const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelection
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       <IndianRupee className="h-4 w-4" />
-                      {apiIntegrationPrice.toLocaleString()}
+                      {(parseFloat(apiIntegrationPrice) || 0).toLocaleString()}
                     </div>
                   </TableCell>
                   <TableCell className="text-right font-semibold">
                     <div className="flex items-center justify-end gap-1">
                       <IndianRupee className="h-4 w-4" />
-                      {apiIntegrationPrice.toLocaleString()}
+                      {(parseFloat(apiIntegrationPrice) || 0).toLocaleString()}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -445,13 +452,13 @@ const ComponentSelection = ({ proposalData, onBack, onNext }: ComponentSelection
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       <IndianRupee className="h-4 w-4" />
-                      {installationPackagingPrice.toLocaleString()}
+                      {(parseFloat(installationPackagingPrice) || 0).toLocaleString()}
                     </div>
                   </TableCell>
                   <TableCell className="text-right font-semibold">
                     <div className="flex items-center justify-end gap-1">
                       <IndianRupee className="h-4 w-4" />
-                      {installationPackagingPrice.toLocaleString()}
+                      {(parseFloat(installationPackagingPrice) || 0).toLocaleString()}
                     </div>
                   </TableCell>
                 </TableRow>
