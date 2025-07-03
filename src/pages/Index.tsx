@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,6 +26,7 @@ interface ProposalData {
   customRequirements: string;
   priceType: string;
   tierType: string;
+  countryCode: string;
 }
 
 interface SelectedComponent {
@@ -57,9 +57,40 @@ const Index = () => {
     },
     customRequirements: '',
     priceType: 'competitiveRetail',
-    tierType: 'tier1'
+    tierType: 'tier1',
+    countryCode: '+1'
   });
   const [selectedComponents, setSelectedComponents] = useState<SelectedComponent[]>([]);
+
+  const countryCodes = [
+    { code: '+1', country: 'US/Canada' },
+    { code: '+44', country: 'UK' },
+    { code: '+91', country: 'India' },
+    { code: '+86', country: 'China' },
+    { code: '+49', country: 'Germany' },
+    { code: '+33', country: 'France' },
+    { code: '+81', country: 'Japan' },
+    { code: '+61', country: 'Australia' },
+    { code: '+55', country: 'Brazil' },
+    { code: '+7', country: 'Russia' },
+    { code: '+39', country: 'Italy' },
+    { code: '+34', country: 'Spain' },
+    { code: '+82', country: 'South Korea' },
+    { code: '+31', country: 'Netherlands' },
+    { code: '+41', country: 'Switzerland' },
+    { code: '+46', country: 'Sweden' },
+    { code: '+47', country: 'Norway' },
+    { code: '+45', country: 'Denmark' },
+    { code: '+971', country: 'UAE' },
+    { code: '+966', country: 'Saudi Arabia' }
+  ];
+
+  const handleClientNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+    if (value.length <= 10) {
+      setProposalData(prev => ({ ...prev, clientNumber: value }));
+    }
+  };
 
   const clientTypes = [
     'Shopping Mall',
@@ -251,13 +282,36 @@ const Index = () => {
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="countryCode">Country Code</Label>
+                <Select value={proposalData.countryCode} onValueChange={(value) => setProposalData(prev => ({ ...prev, countryCode: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select country code" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {countryCodes.map(({ code, country }) => (
+                      <SelectItem key={code} value={code}>
+                        {code} ({country})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="clientNumber">Client Number</Label>
-                <Input
-                  id="clientNumber"
-                  placeholder="e.g., +1 (555) 123-4567"
-                  value={proposalData.clientNumber}
-                  onChange={(e) => setProposalData(prev => ({ ...prev, clientNumber: e.target.value }))}
-                />
+                <div className="flex">
+                  <div className="flex items-center px-3 py-2 bg-gray-100 border border-r-0 border-gray-300 rounded-l-md text-sm">
+                    {proposalData.countryCode}
+                  </div>
+                  <Input
+                    id="clientNumber"
+                    placeholder="1234567890"
+                    value={proposalData.clientNumber}
+                    onChange={handleClientNumberChange}
+                    maxLength={10}
+                    className="rounded-l-none"
+                  />
+                </div>
+                <p className="text-xs text-gray-500">Enter exactly 10 digits</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="clientLocation">Location</Label>
@@ -417,7 +471,7 @@ const Index = () => {
             <Button 
               onClick={proceedToComponents} 
               className="w-full bg-blue-600 hover:bg-blue-700 text-lg py-3"
-              disabled={!proposalData.clientName || !proposalData.clientType}
+              disabled={!proposalData.clientName || !proposalData.clientType || proposalData.clientNumber.length !== 10}
             >
               Proceed to Component Selection
             </Button>
